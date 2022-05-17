@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Tone&amp;Fact 개발기" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-05-16T00:00:00-05:00","datePublished":"2022-05-05T00:00:00-05:00","description":"KoGPT2-taf","headline":"Tone&amp;Fact 개발기","mainEntityOfPage":{"@type":"WebPage","@id":"https://wjlee-ling.github.io/nlp_log/2022/05/05/tone-and-fact-1.html"},"url":"https://wjlee-ling.github.io/nlp_log/2022/05/05/tone-and-fact-1.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-05-17T00:00:00-05:00","datePublished":"2022-05-05T00:00:00-05:00","description":"KoGPT2-taf","headline":"Tone&amp;Fact 개발기","mainEntityOfPage":{"@type":"WebPage","@id":"https://wjlee-ling.github.io/nlp_log/2022/05/05/tone-and-fact-1.html"},"url":"https://wjlee-ling.github.io/nlp_log/2022/05/05/tone-and-fact-1.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/nlp_log/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://wjlee-ling.github.io/nlp_log/feed.xml" title="WJL in NLP" /><link rel="shortcut icon" type="image/x-icon" href="/nlp_log/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
@@ -160,19 +160,52 @@ window.onload = wrap_img;
 
 <p>이에 KoGPT-taf의 토크나이저의 사전과 모델의 임베딩 레이어의 크기가 SKT-KoGPT2에 비해 13개 증가였다.</p>
 
-<p><strong>KoGPT-taf Tokenizer 사양</strong>
-| vocab size | max_length | class | special tokens |
-| :—: | :—: | :—: | :—: |
-| 51,213 | 128 | PreTrainedTokenizerFast (from HuggingFace) | &lt;/s&gt;,  &lt;unk&gt;, &lt;pad&gt;, &lt;mask&gt; |</p>
+<p><strong>KoGPT-taf Tokenizer 사양</strong></p>
 
-<p><strong>Model</strong>
-| model type | # of hidden | # of layers and heads | 최대 생성 길이 |
-| :—: | :—: | :—: | :—: |
-| GPT2 | 768 | 12 | 128 토큰 |</p>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">vocab size</th>
+      <th style="text-align: center">max_length</th>
+      <th style="text-align: center">class</th>
+      <th style="text-align: center">special tokens</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">51,213</td>
+      <td style="text-align: center">128</td>
+      <td style="text-align: center">PreTrainedTokenizerFast (from HuggingFace)</td>
+      <td style="text-align: center">&lt;/s&gt;,  &lt;unk&gt;, &lt;pad&gt;, &lt;mask&gt;</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Model</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">model type</th>
+      <th style="text-align: center"># of hidden</th>
+      <th style="text-align: center"># of layers and heads</th>
+      <th style="text-align: center">최대 생성 길이</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">GPT2</td>
+      <td style="text-align: center">768</td>
+      <td style="text-align: center">12</td>
+      <td style="text-align: center">128 토큰</td>
+    </tr>
+  </tbody>
+</table>
 
 <h3 id="모델-훈련">모델 훈련</h3>
 
 <p>KoGPT2를 실험해 본 결과 그대로 활용하기엔 아쉬운 점이 몇몇 보였다.</p>
+
 <ul>
   <li>많이 부족한 생성 결과</li>
 </ul>
@@ -193,17 +226,13 @@ window.onload = wrap_img;
 
 <p>무엇보다 BERT나 OpenAI GPT가 모델의 크기에 비해 과소적합되어 있다면서 추가로 훈련을 진행하거나, 더 큰 데이터셋으로 훈련을 시킨 경우가 있었던 만큼(ALBERT 등) 우리 모델도 KoGPT2를 단순히 파인튜닝 수준이 아니라 추가로 훈련시키기로 했다.</p>
 
-<ol>
-  <li>추가 language modeling 훈련</li>
-</ol>
+<h4 id="추가-language-modeling-훈련">추가 language modeling 훈련</h4>
 
 <p>KoGPT2의 웨이트를 불러온 후, 국립국어원 모두의 말뭉치의 ‘신문 말뭉치 2021’(4.4GB)의 본문을 대상으로 언어모델링을 추가로 진행했다 (epoch:10, batch_size:32, learning_rate: 5e-5, context_length: 128).</p>
 
-<ol>
-  <li>fine-tuning</li>
-</ol>
+<h4 id="fine-tuning">fine-tuning</h4>
 
-<p>(1) 이후에 epoch:5, learning_rate: 5e-5, context_length:128, batch_size:32로 파인튜닝을 진행했다. 이 때 사용한 데이터셋은 5대 일간지(중앙일보, 조선일보, 한겨레, 동아일보, 경향신문)의 사설 5만여개이다. 각 일간지별로 만여개씩 모았다. 사실 만여개씩 모으면 대략 최근 4-5년치 정도가 되지 않을까 했는데, 실제로 모아보니 대략 10년치였다 (러프하게 계산해보면 언론사별로 1년에 1000개, 하루에 2~3개의 사설을 내는 것이다.)</p>
+<p>이후에 epoch:5, learning_rate: 5e-5, context_length:128, batch_size:32로 파인튜닝을 진행했다. 이 때 사용한 데이터셋은 5대 일간지(중앙일보, 조선일보, 한겨레, 동아일보, 경향신문)의 사설 5만여개이다. 각 일간지별로 만여개씩 모았다. 사실 만여개씩 모으면 대략 최근 4-5년치 정도가 되지 않을까 했는데, 실제로 모아보니 대략 10년치였다 (러프하게 계산해보면 언론사별로 1년에 1000개, 하루에 2~3개의 사설을 내는 것이다.)</p>
 
 <p>더 많은 최신의 신문 데이터를 확보하려면 사설뿐만 아니라 ‘정치’, ‘사회’, ‘경제’ 섹션의 기사들도 모으면 된다. 그런데도 사설만 모아 훈련시킨 이유는 매일매일 가장 주목을 받는 정치적 이슈에 대한 언론사의 대표적 입장이 가장 잘 드러나는 섹션이 사설이기 때문이다. 사설 또한 ‘오피니언’ 섹션의 일부이지만, ‘오피니언’은 말그대로 언론사의 입장과 정반대의 입장도 기고할 수 있는 곳이기 때문에 기자 개인의 이름이 아닌 사명을 달고 내는 사설만 활용하기로 했다.</p>
 
