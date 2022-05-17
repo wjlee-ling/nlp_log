@@ -6,8 +6,8 @@
 # https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
 # https://learnxinyminutes.com/docs/yaml/
 
-title: fastpages
-description: An easy to use blogging platform with support for Jupyter Notebooks.
+title: WJL in NLP
+description: 언어학 전공한 NLP 개발자
 github_username: wjlee-ling
 # you can comment the below line out if your repo name is not different than your baseurl
 github_repo: "nlp_log"
@@ -39,11 +39,10 @@ baseurl: "/nlp_log" # the subpath of your site, e.g. "/blog".
 # Github and twitter are optional:
 minima:
   social_links:
-    twitter: fastdotai
-    github: fastai
+    github: wjlee-ling
 
 # Set this to true to get LaTeX math equation support
-use_math: 
+use_math: true
 
 # Set this to true to display the summary of your blog post under your title on the Home page.
 show_description: true
@@ -72,9 +71,9 @@ include:
 # This specifies what badges are turned on by default for notebook posts.
 default_badges:
   github: true
-  binder: true
+  binder: false
   colab: true
-  deepnote: true
+  deepnote: false
 
 # Escape HTML in post descriptions
 html_escape:
