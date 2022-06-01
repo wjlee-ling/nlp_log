@@ -1,10 +1,10 @@
 ---
 layout: post
 title: Tone&Fact 개발기
-subtitle: 언론사별 사설 생성 모델
+description: 언론사별 사설 생성 모델
 date: 2022-05-05
 last_modified_at: 2022-05-17
-tags: [nlp, GPT, AWS, flask, KoGPT, KoGPT2-taf]
+categories: [nlp, GPT, AWS, flask, KoGPT, KoGPT2-taf]
 ---
 
 **[KoGPT2-taf](https://huggingface.co/A2/kogpt2-taf)**
