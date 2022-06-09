@@ -239,7 +239,7 @@ Vector Space</a></li>
 $$
 P(O | C) = \frac{exp({U_O}^\top V_C)}{\sum_{w}exp({U_w}^\top V_C)}
 $$
-즉 $U_O, V_C$의 내적(분자)을 통해 단어 O, C의 유사도를 구하고 이를 사전 전체를 두고 정규화(분모)한다.</p>
+즉 $U_O$, $V_C$의 내적(분자)을 통해 단어 O, C의 유사도를 구하고 이를 사전 전체를 두고 정규화(분모)한다.</p>
 <p>따라서 각 위치를 $t$라고 할 때 우도(likelihood)는
 $$
 𝐿(\theta) = \prod_{t}^{T}\prod_{-m \leq j \leq m}{P(W_{t+j} \mid W_t ; \theta)} \space (j \ne 0, m은\ context\ size)
@@ -247,7 +247,8 @@ $$
 이고 모델 전체의 cost는 negative log-likelilhood로서
 $$
 J(\theta) = - \frac{1}{T}\log𝐿(\theta)= - \frac{1}{T}\sum_{t}\sum_{j}\log{P(W_{t+j} \mid W_t ; \theta)}
-$$이다. (다만 위는 batch gradient descent임. 실제로는 대부분 SGD로 구현). Skipgram은 이 평균 로그 확률값을 줄이는 방향으로 훈련을 하게 된다.</p>
+$$
+이다. (다만 위는 batch gradient descent임. 실제로는 대부분 SGD로 구현). Skipgram은 이 평균 로그 확률값을 줄이는 방향으로 훈련을 하게 된다.</p>
 
 </div>
 </div>
@@ -273,31 +274,25 @@ $$이다. (다만 위는 batch gradient descent임. 실제로는 대부분 SGD�
 <h3 id="softmax-loss-(categorical-cross-entropy-loss)">
 <a class="anchor" href="#softmax-loss-(categorical-cross-entropy-loss)" aria-hidden="true"><span class="octicon octicon-link"></span></a>softmax loss (categorical cross-entropy loss)<a class="anchor-link" href="#softmax-loss-(categorical-cross-entropy-loss)"> </a>
 </h3>
-<p>현재 타겟 단어 (=center 단어) $C$에 context로 단어 $O$가 나타날 확률에다가 log를 씌운 값이 $\log{P(O \mid C)}$이고, 이 때 $U_O, V_C$ 각각에 대해 미분값을 구하자면
+<p>현재 타겟 단어 (=center 단어) $C$에 context로 단어 $O$가 나타날 확률에다가 log를 씌운 값이 $\log{P(O \mid C)}$이고, 이 때 $U_O, V_C$ 각각에 대해 미분값을 구하자면</p>
 $$
-\begin{equation} 
-\begin{split}
-\frac{\partial}{\partial V_C}\log P(O \mid C) &amp; = \frac{\partial}{\partial V_C}\log\frac{exp({U_O}^\top V_C)}{\sum_{w}exp({U_w}^\top V_C)} \\
-&amp;=  \frac{\partial}{\partial V_C}[{U_O}^\top V_C - \log \sum_{w}exp({U_w}^\top V_C)] \\
-&amp;= U_O - \frac{1}{\sum_{w}exp({U_w}^\top V_C)} \frac{\partial}{\partial V_C}\sum_{w}exp({U_w}^\top V_C) \\
-&amp;= U_O - \frac{1}{\sum_{w}exp({U_w}^\top V_C)}\sum_{w}exp({U_w}^\top V_C)U_w \\
-&amp;= U_O -\sum_{w}{\frac{exp({U_w}^\top V_C)}{\sum_{w}exp({U_w}^\top V_C)}U_w} \\
-&amp;= U_O - \sum_{w}P(w \mid C)U_w \\
-\frac{\partial}{\partial U_O}\log P(O \mid C) &amp; =\frac{\partial}{\partial U_O}
+\frac{\partial}{\partial V_C}\log P(O \mid C) = \frac{\partial}{\partial V_C}\log\frac{exp({U_O}^\top V_C)}{\sum_{w}exp({U_w}^\top V_C)} \\
+=  \frac{\partial}{\partial V_C}[{U_O}^\top V_C - \log \sum_{w}exp({U_w}^\top V_C)] \\
+= U_O - \frac{1}{\sum_{w}exp({U_w}^\top V_C)} \frac{\partial}{\partial V_C}\sum_{w}exp({U_w}^\top V_C) \\
+= U_O - \frac{1}{\sum_{w}exp({U_w}^\top V_C)}\sum_{w}exp({U_w}^\top V_C)U_w \\
+= U_O -\sum_{w}{\frac{exp({U_w}^\top V_C)}{\sum_{w}exp({U_w}^\top V_C)}U_w} \\
+= U_O - \sum_{w}P(w \mid C)U_w \\
+\frac{\partial}{\partial U_O}\log P(O \mid C) =\frac{\partial}{\partial U_O}
 \log\frac{exp({U_O}^\top V_C)}{\sum_{w}exp({U_w}^\top V_C)} \\
-&amp;= \frac{\partial}{\partial U_O}{U_O}^\top V_C - \frac{\partial}{\partial U_O}\log\sum_{w}exp({U_w}^\top V_C) \\
-&amp;= V_C - \frac{1}{\sum_{w}exp({U_w}^\top V_C)} \cdot \frac{\partial}{\partial U_O}[exp({U_1}^\top V_C) + \cdots+exp({U_O}^\top V_C)] \\
-&amp;= V_C - \frac{1}{\sum_{w}exp({U_w}^\top V_C)} \cdot exp({U_O}^\top V_C) \cdot V_C \\
-&amp;= V_C - \frac{exp({U_O}^\top V_C) }{\sum_{w}exp({U_w}^\top V_C)}\cdot V_C = V_C - P(O \mid C) \cdot V_C
-\end{split}
-\end{equation}
-$$</p>
-<p>error 값은 역시 위 log-likelihood 미분값의 음수값이므로
+= \frac{\partial}{\partial U_O}{U_O}^\top V_C - \frac{\partial}{\partial U_O}\log\sum_{w}exp({U_w}^\top V_C) \\
+= V_C - \frac{1}{\sum_{w}exp({U_w}^\top V_C)} \cdot \frac{\partial}{\partial U_O}[exp({U_1}^\top V_C) + \cdots+exp({U_O}^\top V_C)] \\
+= V_C - \frac{1}{\sum_{w}exp({U_w}^\top V_C)} \cdot exp({U_O}^\top V_C) \cdot V_C \\
+= V_C - \frac{exp({U_O}^\top V_C) }{\sum_{w}exp({U_w}^\top V_C)}\cdot V_C = V_C - P(O \mid C) \cdot V_C
+$$<p>error 값은 역시 위 log-likelihood 미분값의 음수값이므로</p>
 $$
 \frac{\partial}{\partial V_C}J(\theta;O,C) = - \frac{\partial}{\partial V_C}\log{P(O \mid C)} =\sum_{w}P(w \mid C)U_w - U_O \\
 \frac{\partial}{\partial U_O}J(\theta;O,C) = - \frac{\partial}{\partial U_O}\log{P(O \mid C)} = P(O \mid C) \cdot V_C - V_C
-$$</p>
-
+$$
 </div>
 </div>
 </div>
@@ -423,11 +418,19 @@ $$<p></p>
 <p align="center"> (k는 sampling size, $v$는 $w_C$가 타겟(인풋)일 때의 벡터, $v'$는 $w_O$가 컨텍스트일 때의 벡터이다.)</p>
 <div class="flash">
     <svg class="octicon octicon-info" viewbox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm6.5-.25A.75.75 0 017.25 7h1a.75.75 0 01.75.75v2.75h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25v-2h-.25a.75.75 0 01-.75-.75zM8 6a1 1 0 100-2 1 1 0 000 2z"></path></svg>
-    <strong>Note: </strong>벡터 표기법이 논문에 따라 다르다. 지금까지 단어 w의 인풋 벡터는 $V_w$, 컨텍스트 벡터는 $U_w$라고 표기했는데, 아래에서는 각각 $v_{w_C}, v&amp;#8217;_{w_O}$로 표기한다.
+    <strong>Note: </strong>벡터 표기법이 논문에 따라 다르다. 지금까지 단어 w의 인풋 벡터는 $V_w$, 컨텍스트 벡터는 $U_w$라고 표기했는데, 아래에서는 각각 $v_{w_C}$, $v&amp;#8217;_{w_O}$로 표기한다.
 </div>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p></p>
 <div class="flash">
     <svg class="octicon octicon-info" viewbox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm6.5-.25A.75.75 0 017.25 7h1a.75.75 0 01.75.75v2.75h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25v-2h-.25a.75.75 0 01-.75-.75zM8 6a1 1 0 100-2 1 1 0 000 2z"></path></svg>
-    <strong>Note: </strong>위 목적함수를 직관적으로 이해하기. $\log\sigma({v&amp;#8217;_{w_O}}^\top v_{w_C})$는 두 벡터가 유사할수록(내적이 클수록) 0에 수렴한다. 그러나 $\sum_{i=1}^{k}\mathbb{E}_{w_i\sim P_n{(w)}}[\log \sigma ({-v&amp;#8217;_{w_i}}^\top v_{w_C})]$에서는 두 벡터의 내적(i.e.${-v&amp;#8217;_{w_i}}^\top v_{w_C}$)이 클수록 sigmoid 결과값은 0에 수렴하며, 결과적으로 $\log \sigma ({-v&amp;#8217;_{w_i}}^\top v_{w_C})$ 는 $-\infty$에 수렴한다. 즉 첫 항은 positive pair의 유사도로 maximize해야 하지만 두번째 항은 k개의 negative pairs의 유사도로 minimize해야 한다.
+    <strong>Note: </strong>위 목적함수를 직관적으로 이해하기. $\log\sigma({v&amp;#8217;_{w_O}}^\top v_{w_C})$는 두 벡터가 유사할수록(내적이 클수록) 0에 수렴한다. 그러나 $\sum_{i=1}^{k}\mathbb{E}_{w_i\sim P_n{(w)}}[\log \sigma ({-v&amp;#8217;_{w_i}}^\top v_{w_C})]$에서는 두 벡터의 내적(i.e.${-v&amp;#8217;_{w_i}}^\top v_{w_C}$ )이 클수록 sigmoid 결과값은 0에 수렴하며, 결과적으로 $\log \sigma ({-v&amp;#8217;_{w_i}}^\top v_{w_C})$ 는 $-\infty$에 수렴한다. 즉 첫 항은 positive pair의 유사도로 maximize해야 하지만 두번째 항은 k개의 negative pairs의 유사도로 minimize해야 한다.
 </div>
 k의 크기는 훈련 데이터셋 크기가 작을 때는 5~20, 클 때는 2~5로 충분하다고 한다. 다만 k개의 negative samples을 수집할 때 빈도가 높은 어휘(관사나 전치사 등)가 과수집되는 것을 막기 위해 노이즈 분포를 다음과 같이 정의해준다. 
 $$
@@ -448,21 +451,24 @@ J = -\log\sigma({v'_{w_O}}^\top v_{w_C}) - \sum_{i=1}^{k}\mathbb{E}_{w_i\sim P_n
 $$
 이고 따라서 center/target word vector에 대한 미분은
 $$
-\frac{\partial J}{\partial v_{w_C}} = - \frac{1}{\sigma({v'_{w_O}}^\top v_{w_C})} \cdot \sigma({v'_{w_O}}^\top v_{w_C}) (1 - \sigma({v'_{w_O}}^\top v_{w_C})) \cdot v'_{w_O} - \sum_{i=1}^{k} \frac{1}{\sigma(-{v'_{w_i}}^\top v_{w_C})} \cdot \sigma(-{v'_{w_i}}^\top v_{w_C}) (1-\sigma(-{v'_{w_i}}^\top v_{w_C})) \cdot -v'_{w_i} \\=(\sigma({v'_{w_O}}^\top v_{w_C}) -1)\cdot v'_{w_O} + \sum_{i=1}^{k} (1- \sigma(-{v'_{w_i}}^\top v_{w_C})) \cdot v'_{w_i}
+\frac{\partial J}{\partial v_{w<em>C}} = - \frac{1}{\sigma({v'</em>{w<em>O}}^\top v</em>{w<em>C})} \cdot \sigma({v'</em>{w<em>O}}^\top v</em>{w<em>C}) (1 - \sigma({v'</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot v'</em>{w_O} \</p>
+<ul>
+<li>\sum<em>{i=1}^{k} \frac{1}{\sigma(-{v'</em>{w<em>i}}^\top v</em>{w<em>C})} \cdot \sigma(-{v'</em>{w<em>i}}^\top v</em>{w<em>C}) (1-\sigma(-{v'</em>{w<em>i}}^\top v</em>{w<em>C})) \cdot -v'</em>{w<em>i} \=(\sigma({v'</em>{w<em>O}}^\top v</em>{w<em>C}) -1)\cdot v'</em>{w<em>O} + \sum</em>{i=1}^{k} (1- \sigma(-{v'_{w<em>i}}^\top v</em>{w<em>C})) \cdot v'</em>{w<em>i}
 $$
 context word vector에 대한 미분은
 $$
-\frac{\partial J}{\partial v'_{w_X}} = - (1 - \sigma({v'_{w_O}}^\top v_{w_C})) \cdot \frac{\partial}{\partial v'_{w_X}} {v'_{w_O}}^\top v_{w_C} - \sum_{i=1}^{k} (1- \sigma(-{v'_{w_i}}^\top v_{w_C})) \cdot \frac{\partial}{\partial v'_{w_X}} ({-v'_{w_i}}^\top v_{w_C})
+\frac{\partial J}{\partial v'</em>{w<em>X}} = - (1 - \sigma({v'</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot \frac{\partial}{\partial v'</em>{w<em>X}} {v'</em>{w<em>O}}^\top v</em>{w<em>C} - \sum</em>{i=1}^{k} (1- \sigma(-{v'_{w<em>i}}^\top v</em>{w<em>C})) \cdot \frac{\partial}{\partial v'</em>{w<em>X}} ({-v'</em>{w<em>i}}^\top v</em>{w<em>C})
 $$
-여기서 $v'_{w_X} = v'_{w_O}$ 일 때는 (positive sample의 컨텍스트 단어 $w_O$에 대한 미분)
+여기서 $v'</em>{w<em>X} = v'</em>{w_O}$ 일 때는 (positive sample의 컨텍스트 단어 $w<em>O$에 대한 미분)
 $$
-\frac{\partial J}{\partial v'_{w_O}} = - (1 - \sigma({v'_{w_O}}^\top v_{w_C})) \cdot v_{w_C} 
+\frac{\partial J}{\partial v'</em>{w<em>O}} = - (1 - \sigma({v'</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot v</em>{w<em>C} 
 $$
-반면 $v'_{w_X} = v'_{w_i}$ 일 때는 (즉 negative sample의 컨텍스트 단어 하나에 대한 미분; k만큼 업데이트)
+반면 $v'</em>{w<em>X} = v'</em>{w<em>i}$ 일 때는 (즉 negative sample의 컨텍스트 단어 하나에 대한 미분; k만큼 업데이트)
 $$
-\frac{\partial J}{\partial v'_{w_i}} = (1 - \sigma({-v'_{w_O}}^\top v_{w_C})) \cdot v_{w_C} (i는 1 \cdots k)
+\frac{\partial J}{\partial v'</em>{w<em>i}} = (1 - \sigma({-v'</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot v</em>{w<em>C} (i는 1 \cdots k)
 $$
-위에서 $v'_{w_O} = v'_{w_i} $ 즉 컨텍스트 단어 하나가 positive pair와 동시에 negative pair로 추출될 수도 있다. 이때는 위 두식에 의해 두번 업데이트 된다.</p>
+위에서 $v'</em>{w<em>O} = v'</em>{w_i} $ 즉 컨텍스트 단어 하나가 positive pair와 동시에 negative pair로 추출될 수도 있다. 이때는 위 두식에 의해 두번 업데이트 된다. </li>
+</ul>
 
 </div>
 </div>
