@@ -449,26 +449,22 @@ frequency (Unigram)를 3/4 승하면 노이즈 분포를 완만하게 할 수 �
 $$
 J = -\log\sigma({u_{w_O}}^\top v_{w_C}) - \sum_{i=1}^{k}\mathbb{E}_{w_i\sim P_n{(w)}}[\log \sigma ({-u_{w_i}}^\top v_{w_C})]
 $$
-이고 따라서 center/target word vector에 대한 미분은
+이고 따라서 center/target word vector에 대한 미분은</p>
 $$
-\frac{\partial J}{\partial v_{w<em>C}} = - \frac{1}{\sigma({u</em>{w<em>O}}^\top v</em>{w<em>C})} \cdot \sigma({u</em>{w<em>O}}^\top v</em>{w<em>C}) (1 - \sigma({u</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot u</em>{w_O} \</p>
-<ul>
-<li>\sum<em>{i=1}^{k} \frac{1}{\sigma(-{u</em>{w<em>i}}^\top v</em>{w<em>C})} \cdot \sigma(-{u</em>{w<em>i}}^\top v</em>{w<em>C}) (1-\sigma(-{u</em>{w<em>i}}^\top v</em>{w<em>C})) \cdot -u</em>{w<em>i} \=(\sigma({u</em>{w<em>O}}^\top v</em>{w<em>C}) -1)\cdot u</em>{w<em>O} + \sum</em>{i=1}^{k} (1- \sigma(-{u_{w<em>i}}^\top v</em>{w<em>C})) \cdot u</em>{w<em>i}
+\frac{\partial J}{\partial v_{w_C}} = - \frac{1}{\sigma({u_{w_O}}^\top v_{w_C})} \cdot \sigma({u_{w_O}}^\top v_{w_C}) (1 - \sigma({u_{w_O}}^\top v_{w_C})) \cdot u_{w_O} -\sum_{i=1}^{k} \frac{1}{\sigma(-{u_{w_i}}^\top v_{w_C})} \cdot \sigma(-{u_{w_i}}^\top v_{w_C}) (1-\sigma(-{u_{w_i}}^\top v_{w_C})) \cdot -u_{w_i} \\=(\sigma({u_{w_O}}^\top v_{w_C}) -1)\cdot u_{w_O} + \sum_{i=1}^{k} (1- \sigma(-{u_{w_i}}^\top v_{w_C})) \cdot u_{w_i}
+$$<p>context word vector에 대한 미분은
 $$
-context word vector에 대한 미분은
+\frac{\partial J}{\partial u_{w_X}} = - (1 - \sigma({u_{w_O}}^\top v_{w_C})) \cdot \frac{\partial}{\partial u_{w_X}} {u_{w_O}}^\top v_{w_C} - \sum_{i=1}^{k} (1- \sigma(-{u_{w_i}}^\top v_{w_C})) \cdot \frac{\partial}{\partial u_{w_X}} ({-u_{w_i}}^\top v_{w_C})
 $$
-\frac{\partial J}{\partial u</em>{w<em>X}} = - (1 - \sigma({u</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot \frac{\partial}{\partial u</em>{w<em>X}} {u</em>{w<em>O}}^\top v</em>{w<em>C} - \sum</em>{i=1}^{k} (1- \sigma(-{u_{w<em>i}}^\top v</em>{w<em>C})) \cdot \frac{\partial}{\partial u</em>{w<em>X}} ({-u</em>{w<em>i}}^\top v</em>{w<em>C})
+여기서 $u_{w_X} = u_{w_O}$ 일 때는 (positive sample의 컨텍스트 단어 $w_O$에 대한 미분)
 $$
-여기서 $u</em>{w<em>X} = u</em>{w_O}$ 일 때는 (positive sample의 컨텍스트 단어 $w<em>O$에 대한 미분)
+\frac{\partial J}{\partial u_{w_O}} = - (1 - \sigma({u_{w_O}}^\top v_{w_C})) \cdot v_{w_C} 
 $$
-\frac{\partial J}{\partial u</em>{w<em>O}} = - (1 - \sigma({u</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot v</em>{w<em>C} 
+반면 $u_{w_X} = u_{w_i}$ 일 때는 (즉 negative sample의 컨텍스트 단어 하나에 대한 미분; k만큼 업데이트)
 $$
-반면 $u</em>{w<em>X} = u</em>{w<em>i}$ 일 때는 (즉 negative sample의 컨텍스트 단어 하나에 대한 미분; k만큼 업데이트)
+\frac{\partial J}{\partial u_{w_i}} = (1 - \sigma({-u_{w_O}}^\top v_{w_C})) \cdot v_{w_C} (i는 1 \cdots k)
 $$
-\frac{\partial J}{\partial u</em>{w<em>i}} = (1 - \sigma({-u</em>{w<em>O}}^\top v</em>{w<em>C})) \cdot v</em>{w<em>C} (i는 1 \cdots k)
-$$
-위에서 $u</em>{w<em>O} = u</em>{w_i} $ 즉 컨텍스트 단어 하나가 positive pair와 동시에 negative pair로 추출될 수도 있다. 이때는 위 두식에 의해 두번 업데이트 된다. </li>
-</ul>
+위에서 $u_{w_O} = u_{w_i} $ 즉 컨텍스트 단어 하나가 positive pair와 동시에 negative pair로 추출될 수도 있다. 이때는 위 두식에 의해 두번 업데이트 된다.</p>
 
 </div>
 </div>
