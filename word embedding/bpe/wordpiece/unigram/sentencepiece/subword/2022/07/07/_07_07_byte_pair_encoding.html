@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="twitter:card" content="summary_large_image" /><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Byte-Pair Encoding (BPE) 알아보기 | WJL in NLP</title>
+<meta name="generator" content="Jekyll v4.1.1" />
+<meta property="og:title" content="Byte-Pair Encoding (BPE) 알아보기" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="BPE, WordPiece, Unigram, SentencePiece" />
+<meta property="og:description" content="BPE, WordPiece, Unigram, SentencePiece" />
+<link rel="canonical" href="https://wjlee-ling.github.io/nlp_log/word%20embedding/bpe/wordpiece/unigram/sentencepiece/subword/2022/07/07/_07_07_byte_pair_encoding.html" />
+<meta property="og:url" content="https://wjlee-ling.github.io/nlp_log/word%20embedding/bpe/wordpiece/unigram/sentencepiece/subword/2022/07/07/_07_07_byte_pair_encoding.html" />
+<meta property="og:site_name" content="WJL in NLP" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-07-07T00:00:00-05:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Byte-Pair Encoding (BPE) 알아보기" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-07-07T00:00:00-05:00","datePublished":"2022-07-07T00:00:00-05:00","description":"BPE, WordPiece, Unigram, SentencePiece","headline":"Byte-Pair Encoding (BPE) 알아보기","mainEntityOfPage":{"@type":"WebPage","@id":"https://wjlee-ling.github.io/nlp_log/word%20embedding/bpe/wordpiece/unigram/sentencepiece/subword/2022/07/07/_07_07_byte_pair_encoding.html"},"url":"https://wjlee-ling.github.io/nlp_log/word%20embedding/bpe/wordpiece/unigram/sentencepiece/subword/2022/07/07/_07_07_byte_pair_encoding.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/nlp_log/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://wjlee-ling.github.io/nlp_log/feed.xml" title="WJL in NLP" /><link rel="shortcut icon" type="image/x-icon" href="/nlp_log/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.css" integrity="sha512-h7nl+xz8wgDlNM4NqKEM4F1NkIRS17M9+uJwIGwuo8vGqIl4BhuCKdxjWEINm+xyrUjNCnK5dCrhM0sj+wTIXw==" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.js" integrity="sha512-/CMIhXiDA3m2c9kzRyd97MTb3MC6OVnx4TElQ7fkkoRghwDf6gi41gaT1PwF270W6+J60uTmwgeRpNpJdRV6sg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/contrib/auto-render.min.js" integrity="sha512-Do7uJAaHZm5OLrIv/yN4w0iG1dbu01kzdMNnFfu/mAqgUk6Nniv2JYHcwH+cNwjqgLcqcuBBk+JRvprLVI8azg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha512-0doc9hKxR3PYwso42RD1p5ySZpzzuDiOwMrdCEh2WdJZCjcmFKc/wEnL+z8fBQrnHoiNWbo+3fiGkOYXBdQp4A==" crossorigin="anonymous"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement( document.body, {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "[%", right: "%]", display: true},
+            {left: "$", right: "$", display: false}
+        ]}
+        );
+    });
+    </script>
+
+
+<script>
+function wrap_img(fn) {
+    if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
+        var elements = document.querySelectorAll(".post img");
+        Array.prototype.forEach.call(elements, function(el, i) {
+            if (el.getAttribute("title") && (el.className != "emoji")) {
+                const caption = document.createElement('figcaption');
+                var node = document.createTextNode(el.getAttribute("title"));
+                caption.appendChild(node);
+                const wrapper = document.createElement('figure');
+                wrapper.className = 'image';
+                el.parentNode.insertBefore(wrapper, el);
+                el.parentNode.removeChild(el);
+                wrapper.appendChild(el);
+                wrapper.appendChild(caption);
+            }
+        });
+    } else { document.addEventListener('DOMContentLoaded', fn); }
+}
+window.onload = wrap_img;
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+    // add link icon to anchor tags
+    var elem = document.querySelectorAll(".anchor-link")
+    elem.forEach(e => (e.innerHTML = '<i class="fas fa-link fa-xs"></i>'));
+    });
+</script>
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/nlp_log/">WJL in NLP</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/nlp_log/about/">About Me</a><a class="page-link" href="/nlp_log/search/">Search</a><a class="page-link" href="/nlp_log/categories/">Tags</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Byte-Pair Encoding (BPE) 알아보기</h1><p class="page-description">BPE, WordPiece, Unigram, SentencePiece</p><p class="post-meta post-meta-title"><time class="dt-published" datetime="2022-07-07T00:00:00-05:00" itemprop="datePublished">
+        Jul 7, 2022
+      </time>
+       • <span class="read-time" title="Estimated read time">
+    
+    
+      3 min read
+    
+</span></p>
+
+    
+      <p class="category-tags"><i class="fas fa-tags category-tags-icon"></i></i> 
+      
+        <a class="category-tags-link" href="/nlp_log/categories/#word embedding">word embedding</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/nlp_log/categories/#BPE">BPE</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/nlp_log/categories/#wordpiece">wordpiece</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/nlp_log/categories/#unigram">unigram</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/nlp_log/categories/#sentencepiece">sentencepiece</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/nlp_log/categories/#subword">subword</a>
+        
+      
+      </p>
+    
+
+    
+      
+        <div class="pb-5 d-flex flex-justify-center">
+          <div class="px-2">
+
+    <a href="https://github.com/wjlee-ling/nlp_log/tree/master/_notebooks/2022_07_07_byte_pair_encoding.ipynb" role="button" target="_blank">
+<img class="notebook-badge-image" src="/nlp_log/assets/badges/github.svg" alt="View On GitHub">
+    </a>
+</div>
+
+          
+          <div class="px-2">
+    <a href="https://colab.research.google.com/github/wjlee-ling/nlp_log/blob/master/_notebooks/2022_07_07_byte_pair_encoding.ipynb" target="_blank">
+        <img class="notebook-badge-image" src="/nlp_log/assets/badges/colab.svg" alt="Open In Colab"/>
+    </a>
+</div>
+          
+        </div>
+      </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul id="toc" class="section-nav">
+<li class="toc-entry toc-h2"><a href="#기본-아이디어">기본 아이디어 </a></li>
+<li class="toc-entry toc-h2"><a href="#Byte-level-BPE">Byte-level BPE </a></li>
+<li class="toc-entry toc-h2"><a href="#WordPiece">WordPiece </a></li>
+<li class="toc-entry toc-h2"><a href="#Reference">Reference </a></li>
+</ul><!--
+#################################################
+### THIS FILE WAS AUTOGENERATED! DO NOT EDIT! ###
+#################################################
+# file to edit: _notebooks/2022_07_07_byte_pair_encoding.ipynb
+-->
+
+<div class="container" id="notebook-container">
+        
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><strong>Subword Tokenization</strong></p>
+<p>Subword Tokenization이란 띄어쓰기(space)를 기준으로 나뉘는 단어보다 작지만 character(자/모)보다 큰 유닛(subword)으로 문장을 나누는 것으로 다음과 같은 장점이 있다.</p>
+<ol>
+<li>빈도가 낮은 단어, 사전에 없는 단어들도 (빈도가 높은) 서브 단어들의 조합으로 인코딩할 수 있다.</li>
+<li>따라서 적당한 크기의 사전으로 많은 단어를 커버할 수 있다.</li>
+<li>띄어쓰기를 안하는 언어(예. 중국어, 일본어) 처리에 용이하다.</li>
+<li>접사/어미 등이 실질적 의미를 갖는 어근, 어간에 달라 붙어 어절을 형성하는 교착어인 한국어 처리에 보다 용이하다.
+<div class="flash">
+    <svg class="octicon octicon-info" viewbox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm6.5-.25A.75.75 0 017.25 7h1a.75.75 0 01.75.75v2.75h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25v-2h-.25a.75.75 0 01-.75-.75zM8 6a1 1 0 100-2 1 1 0 000 2z"></path></svg>
+    <strong>Note: </strong>형태소 분석을 해서 하나의 형태소를 하나의 subword로 취급하는 것이 아니다. 
+</div>
+BPE의 다양한 알고리즘을 <a href="https://huggingface.co/docs/transformers/tokenizer_summary#bytepair-encoding-bpe">huggingface의 설명</a>을 참고해 정리해봤다.</li>
+</ol>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="기본-아이디어">
+<a class="anchor" href="#%EA%B8%B0%EB%B3%B8-%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4" aria-hidden="true"><span class="octicon octicon-link"></span></a>기본 아이디어<a class="anchor-link" href="#%EA%B8%B0%EB%B3%B8-%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4"> </a>
+</h2>
+<p><strong>훈련 방식</strong></p>
+<ol>
+<li>정규화</li>
+<li>pre-tokenization &amp; 기본 사전 만들기: 문장을 단어 단위로 나누기. 띄어쓰기 위주의 토큰화(e.g. GPT-2, Roberta 경우)도 가능하지만 보다 복잡한 토큰화를 사용할 수도 있다(GPT, XLM 등). 얻어진 토큰들을 기본 사전으로 삼고, 각 토큰들의 빈도수를 센다.</li>
+<li>위에서 구한 기본 사전들의 각 유닛들의 조합들 중 가장 빈도가 높은 조합을 사전에 추가한다.</li>
+<li>사전에 정한 크기에 사전이 될 때까지 (2)를 반복한다. </li>
+</ol>
+<p><strong>예시</strong></p>
+<p>(1) 사용하는 corpus가 pre-tokenization 이후 다음과 같은 토큰들과 빈도수를 갖는다고 가정할 때</p>
+
+<pre><code>frquency = [("hug", 10), ("pug", 5), ("pun", 12), ("bun", 4), ("hugs", 5)]
+vocabulary = ['b, 'g', 'h', 'n', 'p', 's', 'u']
+&gt; &gt; [("h" "u" "g", 10), ("p" "u" "g", 5), ("p" "u" "n", 12), ("b" "u" "n", 4), ("h" "u" "g" "s", 5)]</code></pre>
+<p>(2) 사전에 등록된 아이템 조합 중 'u'+'g'가 가장 빈도가 높으므로 'ug'를 사전에 추가한다.</p>
+
+<pre><code>("h" "ug", 10), ("p" "ug", 5), ("p" "u" "n", 12), ("b" "u" "n", 4), ("h" "ug" "s", 5)
+&gt;&gt; vocabulary = ['b, 'g', 'h', 'n', 'p', 's', 'u', 'ug'] # update</code></pre>
+<p>(3) 정해진 사전 크기까지 '조합 + 사전 등록' 반복.</p>
+<blockquote>
+<p>note:<code>&lt;/w&gt;</code>와 같은 특별 토큰을 단어 끝에 붙여 단어간 경계를 표기하고 훈련시키기도 한다.</p>
+</blockquote>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Byte-level-BPE">
+<a class="anchor" href="#Byte-level-BPE" aria-hidden="true"><span class="octicon octicon-link"></span></a>Byte-level BPE<a class="anchor-link" href="#Byte-level-BPE"> </a>
+</h2>
+<p>Unicode가 아닌 Byte로 표현해 사전을 구성하기도 한다. 예를 들어 GPT-2는 바이트 기반으로 기본 사전을 만들기 때문에 256(==2^8)이라는 작은 크기의 기본 사전으로 1) 모든 영문자, 숫자와 일부 특수문자를 커버하고 2) 이들을 결합해 만든 50,000개의 조합과 <end-of-text>이라는 스페셜 토큰을 추가해 총 50,257짜리 사전을 구성한다.&lt;/p&gt;
+<p><strong>문제점</strong>
+빈도수가 똑같은 서브워드 쌍(pair)들이 여러 있을 때 어떤 쌍을 우선시할지 애매하다. 추가되는 쌍에 따라 같은 단어가 여러가지 방법으로 다르게 인코딩 될 수 있으며, 이는 최종 성능 평가에 영향을 줄 수 있다.</p>
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="WordPiece">
+<a class="anchor" href="#WordPiece" aria-hidden="true"><span class="octicon octicon-link"></span></a>WordPiece<a class="anchor-link" href="#WordPiece"> </a>
+</h2>
+<p>BPE와 기본 아이디어와 훈련 방식이 거의 비슷한 알고리즘이 여러 있다. BERT등이 사용하는 WordPiece도 그 중 하나인데, 사전에 추가하는 기준이 살짝 다르다. BPE는 단순 빈도로 평가했다면, WordPiece는 가능도(likelihood)를 따진다. 또 위 BPE는 바이트들을 결합시켜 새 유닛을 만드는 bottom-up 방식인 반면, WordPiece는 bottom-up은 물론 top-down 방식으로도 구현할 수 있다(한국어, 일본어, 중국어 등은 top-down은 안됨).</p>
+<p>WordPiece를 소개한 <a href="https://static.googleusercontent.com/media/research.google.com/ja//pubs/archive/37842.pdf">논문</a>도 이를 설명하는 블로그들도 정확히 어떻게 가능도를 따지는지 설명하거나 코드를 제시하지 않는다. 논문에서 "Choose the new word unit out of all possible ones that increases the likelihood on the training data the most when added to the model" 이라고 하니, unigram 모델의 maximum likelihood를 따지는 것 같다.</p>
+<p>즉 training corpus가 <code>(hug, 10), (pug, 5), (pun, 12)</code>라는 단어-카운트 쌍으로 이뤄져 있다고 가정하고, 가능한 조합쌍 'pu'와 'ug' 중 하나만 사전에 넣어야 한다면</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="n">corpus</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'hug'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">+</span> <span class="p">[</span><span class="s1">'pug'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">+</span> <span class="p">[</span><span class="s1">'pun'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">12</span>
+<span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">corpus</span><span class="p">))</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">most_common</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'basic vocabulary: </span><span class="si">{</span><span class="n">counts</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'After 1st possible iteration'</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">cand</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'pu'</span><span class="p">,</span> <span class="s1">'ug'</span><span class="p">]:</span>
+    <span class="n">new_counter</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">corpus</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cand</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
+            <span class="n">new_counter</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">cand</span><span class="p">:</span><span class="n">word</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">cand</span><span class="p">)})</span> 
+            <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">cand</span><span class="p">:</span>
+                <span class="n">new_counter</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">char</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">})</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">new_counter</span><span class="o">.</span><span class="n">most_common</span><span class="p">()</span> 
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'possible candidate: </span><span class="si">{</span><span class="n">cand</span><span class="si">}</span><span class="s1"> &amp; updated vocabulary: </span><span class="si">{</span><span class="n">counts</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>   
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">counts</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">model_likelihood</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">**</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'possible candidate: </span><span class="si">{</span><span class="n">cand</span><span class="si">}</span><span class="s1"> &amp; likelihood: </span><span class="si">{</span><span class="n">model_likelihood</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>basic vocabulary: [('u', 27), ('p', 17), ('g', 15), ('n', 12), ('h', 10)]
+After 1st possible iteration
+possible candidate: pu &amp; updated vocabulary: [('pu', 17), ('g', 15), ('n', 12), ('h', 10), ('u', 10), ('p', 0)]
+possible candidate: pu &amp; likelihood: 0.0002849847078323364
+possible candidate: ug &amp; updated vocabulary: [('p', 17), ('ug', 15), ('u', 12), ('n', 12), ('h', 10), ('g', 0)]
+possible candidate: ug &amp; likelihood: 0.0002932128470001566
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>단순 frequency를 따지는 BPE로 하면 'pu'(17)를 'ug'(15) 대신 사전에 등록해야 하지만, WordPiece는 모델의 가능도가 더 높은 'ug'를 추가한다. 물론 이는 bottom-up 알고리즘이며, space를 표기하는 space marker, 즉 _(underscore)를 고려하지 않은 예시이다.
+그런데 BERT에 사용되었다는 top-down WordPiece 알고리즘은 BPE처럼 가능도 대신 단순 빈도를 따지고 subword unit 후보도 독특하게 구성하는 듯 하다. <a href="https://www.tensorflow.org/text/guide/subwords_tokenizer#optional_the_algorithm">여기</a> 참고.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a href="https://pytorch.org/tutorials/beginner/chatbot_tutorial.html">https://pytorch.org/tutorials/beginner/chatbot_tutorial.html</a>
+<a href="https://wikidocs.net/22592">https://wikidocs.net/22592</a></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Reference">
+<a class="anchor" href="#Reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reference<a class="anchor-link" href="#Reference"> </a>
+</h2>
+<ol>
+<li>huggingface: <a href="https://huggingface.co/docs/transformers/tokenizer_summary#bytepair-encoding-bpe">BPE Tokenizer Summary</a>
+</li>
+<li>huggingface: <a href="https://huggingface.co/course/chapter6/5?fw=pt#bytepair-encoding-tokenization">BPE Tokenization</a>
+</li>
+<li>google-tensorflow: <a href="https://www.tensorflow.org/text/guide/subwords_tokenizer#optional_the_algorithm">Subword Tokenization</a>
+</li>
+</ol>
+
+</div>
+</div>
+</div>
+&lt;/div&gt;
+ 
+
+</end-of-text></p>
+</div>
+</div></div>
+</div>
+
+
+  </div><!-- from https://github.com/utterance/utterances -->
+<script src="https://utteranc.es/client.js"
+        repo="wjlee-ling/nlp_log"
+        issue-term="title"
+        label="blogpost-comment"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script><a class="u-url" href="/nlp_log/word%20embedding/bpe/wordpiece/unigram/sentencepiece/subword/2022/07/07/_07_07_byte_pair_encoding.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/nlp_log/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p class="feed-subscribe">
+          <a href="/nlp_log/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/nlp_log/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p>
+      </div>
+      <div class="footer-col">
+        <p>언어학 전공한 NLP 개발자</p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/wjlee-ling" target="_blank" title="wjlee-ling"><svg class="svg-icon grey"><use xlink:href="/nlp_log/assets/minima-social-icons.svg#github"></use></svg></a></li></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
