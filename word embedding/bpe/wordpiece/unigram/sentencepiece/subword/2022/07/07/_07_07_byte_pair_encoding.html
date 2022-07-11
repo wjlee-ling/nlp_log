@@ -95,7 +95,7 @@ window.onload = wrap_img;
        • <span class="read-time" title="Estimated read time">
     
     
-      3 min read
+      4 min read
     
 </span></p>
 
@@ -147,7 +147,11 @@ window.onload = wrap_img;
     <ul id="toc" class="section-nav">
 <li class="toc-entry toc-h2"><a href="#기본-아이디어">기본 아이디어 </a></li>
 <li class="toc-entry toc-h2"><a href="#Byte-level-BPE">Byte-level BPE </a></li>
-<li class="toc-entry toc-h2"><a href="#WordPiece">WordPiece </a></li>
+<li class="toc-entry toc-h2"><a href="#WordPiece">WordPiece </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#Unigram">Unigram </a></li>
+</ul>
+</li>
 <li class="toc-entry toc-h2"><a href="#Reference">Reference </a></li>
 </ul><!--
 #################################################
@@ -228,72 +232,13 @@ vocabulary = ['b, 'g', 'h', 'n', 'p', 's', 'u']
 <a class="anchor" href="#WordPiece" aria-hidden="true"><span class="octicon octicon-link"></span></a>WordPiece<a class="anchor-link" href="#WordPiece"> </a>
 </h2>
 <p>BPE와 기본 아이디어와 훈련 방식이 거의 비슷한 알고리즘이 여러 있다. BERT등이 사용하는 WordPiece도 그 중 하나인데, 사전에 추가하는 기준이 살짝 다르다. BPE는 단순 빈도로 평가했다면, WordPiece는 가능도(likelihood)를 따진다. 또 위 BPE는 바이트들을 결합시켜 새 유닛을 만드는 bottom-up 방식인 반면, WordPiece는 bottom-up은 물론 top-down 방식으로도 구현할 수 있다(한국어, 일본어, 중국어 등은 top-down은 안됨).</p>
-<p>WordPiece를 소개한 <a href="https://static.googleusercontent.com/media/research.google.com/ja//pubs/archive/37842.pdf">논문</a>도 이를 설명하는 블로그들도 정확히 어떻게 가능도를 따지는지 설명하거나 코드를 제시하지 않는다. 논문에서 "Choose the new word unit out of all possible ones that increases the likelihood on the training data the most when added to the model" 이라고 하니, unigram 모델의 maximum likelihood를 따지는 것 같다.</p>
-<p>즉 training corpus가 <code>(hug, 10), (pug, 5), (pun, 12)</code>라는 단어-카운트 쌍으로 이뤄져 있다고 가정하고, 가능한 조합쌍 'pu'와 'ug' 중 하나만 사전에 넣어야 한다면</p>
-
+<p>WordPiece를 소개한 <a href="https://static.googleusercontent.com/media/research.google.com/ja//pubs/archive/37842.pdf">논문</a>을 보면 language model을 만들고 bigram으로 가능도를 측정한다고 되어있다. huggingface <a href="https://huggingface.co/course/chapter6/6?fw=pt">설명</a>에 따르면 이 가능도는 $\frac{C(w_n)}{C(w_{n-1}) \times C(w_n)}$ 로 계산한다. 직관적으로 이해하자면, 각 단어의 빈도가 적을수록(분모) + 둘이 같이 나타나는 빈도가 높을수록(분자) 결합 순위가 높아진다는 것이다. 다만 huggingface측이 제시한 수식이 일반적으로 n-gram language model에서 maximum likelihood 구하는 수식이랑 달라 (분모에서 C(w_n) 추가로 곱하는 것) 조금 의문이 생기는데, huggingface도 구글이 코드를 공개하지 않아 추측해서 만들었다고 한다.
+</p>
+<div class="flash flash-error">
+    <svg class="octicon octicon-alert" viewbox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8.22 1.754a.25.25 0 00-.44 0L1.698 13.132a.25.25 0 00.22.368h12.164a.25.25 0 00.22-.368L8.22 1.754zm-1.763-.707c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0114.082 15H1.918a1.75 1.75 0 01-1.543-2.575L6.457 1.047zM9 11a1 1 0 11-2 0 1 1 0 012 0zm-.25-5.25a.75.75 0 00-1.5 0v2.5a.75.75 0 001.5 0v-2.5z"></path></svg>
+    <strong>Warning: </strong>"Google never open-sourced its implementation of the training algorithm of WordPiece, so what follows is our best guess based on the published literature. It may not be 100% accurate." (huggingface)
 </div>
-</div>
-</div>
-    
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
-<span class="kn">import</span> <span class="nn">math</span>
-
-<span class="n">corpus</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'hug'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">+</span> <span class="p">[</span><span class="s1">'pug'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">+</span> <span class="p">[</span><span class="s1">'pun'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">12</span>
-<span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">corpus</span><span class="p">))</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">most_common</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'basic vocabulary: </span><span class="si">{</span><span class="n">counts</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">'After 1st possible iteration'</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">cand</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'pu'</span><span class="p">,</span> <span class="s1">'ug'</span><span class="p">]:</span>
-    <span class="n">new_counter</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">corpus</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">cand</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
-            <span class="n">new_counter</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">cand</span><span class="p">:</span><span class="n">word</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">cand</span><span class="p">)})</span> 
-            <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">cand</span><span class="p">:</span>
-                <span class="n">new_counter</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">char</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">})</span>
-    <span class="n">counts</span> <span class="o">=</span> <span class="n">new_counter</span><span class="o">.</span><span class="n">most_common</span><span class="p">()</span> 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'possible candidate: </span><span class="si">{</span><span class="n">cand</span><span class="si">}</span><span class="s1"> &amp; updated vocabulary: </span><span class="si">{</span><span class="n">counts</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>   
-    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">counts</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">model_likelihood</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">**</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'possible candidate: </span><span class="si">{</span><span class="n">cand</span><span class="si">}</span><span class="s1"> &amp; likelihood: </span><span class="si">{</span><span class="n">model_likelihood</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>basic vocabulary: [('u', 27), ('p', 17), ('g', 15), ('n', 12), ('h', 10)]
-After 1st possible iteration
-possible candidate: pu &amp; updated vocabulary: [('pu', 17), ('g', 15), ('n', 12), ('h', 10), ('u', 10), ('p', 0)]
-possible candidate: pu &amp; likelihood: 0.0002849847078323364
-possible candidate: ug &amp; updated vocabulary: [('p', 17), ('ug', 15), ('u', 12), ('n', 12), ('h', 10), ('g', 0)]
-possible candidate: ug &amp; likelihood: 0.0002932128470001566
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    
-
-<div class="cell border-box-sizing text_cell rendered">
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>단순 frequency를 따지는 BPE로 하면 'pu'(17)를 'ug'(15) 대신 사전에 등록해야 하지만, WordPiece는 모델의 가능도가 더 높은 'ug'를 추가한다. 물론 이는 bottom-up 알고리즘이며, space를 표기하는 space marker, 즉 _(underscore)를 고려하지 않은 예시이다.
-그런데 BERT에 사용되었다는 top-down WordPiece 알고리즘은 BPE처럼 가능도 대신 단순 빈도를 따지고 subword unit 후보도 독특하게 구성하는 듯 하다. <a href="https://www.tensorflow.org/text/guide/subwords_tokenizer#optional_the_algorithm">여기</a> 참고.</p>
+원 논문의 알고리즘은 bottom-up인데, BERT에 사용되었다는 top-down WordPiece 알고리즘은 BPE처럼 단순 빈도를 따지고 pair 구성도 bigram이상으로 하는 등 여러모로 독특하다. <a href="https://www.tensorflow.org/text/guide/subwords_tokenizer#optional_the_algorithm">여기</a> 참고. 같은 character라도 prefix가 있는 경우('h + ug' vs. 'h + '##ug')와 없는 경우 다르게 encoding하는 것도 원 논문에는 없지만 일반적으로 많이 구현하는 방식인듯 하다.
 
 </div>
 </div>
@@ -301,8 +246,37 @@ possible candidate: ug &amp; likelihood: 0.0002932128470001566
 <div class="cell border-box-sizing text_cell rendered">
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="https://pytorch.org/tutorials/beginner/chatbot_tutorial.html">https://pytorch.org/tutorials/beginner/chatbot_tutorial.html</a>
-<a href="https://wikidocs.net/22592">https://wikidocs.net/22592</a></p>
+<h3 id="Unigram">
+<a class="anchor" href="#Unigram" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unigram<a class="anchor-link" href="#Unigram"> </a>
+</h3>
+<p>Unigram은 BPE나 WordPiece와 확연히 다르게 큰 사전으로 시작해서, loss 상 없어져도 큰 상관이 없는 토큰을 없애는 방식으로 사전의 크기를 조정한다. 얼마나 상관이 있는지 계산하는 방식은 이름 그대로 unigramg하게 정한다. 예를 들어 corpus가 다음과 같은 (subword, count)로 이뤄져 있다면 가능한 subword 조합은 다음과 같다.</p>
+
+<pre><code>("dog", 10) ("do", 5) ==&gt; ("d", 15) ("o", 15) ("g", 10) ("do", 15) ("og", 10)</code></pre>
+<p>이를 바탕으로 unigram 확률을 구하자면
+$$ 
+P(["d", "o", "g"]) = P("d") \cdot P("o") \cdot P("g") = \frac{15}{65} \frac{15}{65} \frac{10}{65} = 0.008192990441511151 \\
+P(["do", "g"]) = P("do") \cdot P("g") = \frac{15}{65} \frac{10}{65} = 0.03550295857988166 \\
+P(["d", "og"]) = P("d") \cdot P("og") = \frac{15}{65} \frac{10}{65} = 0.03550295857988166
+$$
+이다. 즉 서브워드 토큰의 unigram 확률의 분모가 조합가능한 모든 페어의 빈도를 합한 값이므로 최대한 적은 수의 서브워드로 나누는 것이 확률값이 크다. 이와 같이 unigram상 확률의 negative log likelihood로 훈련 코퍼스에 대한 총 loss를 구하게 된다.
+$$
+\mathcal{L} = - \log \prod_{t}^{T}{P(w_t)} = - \sum_{t}^{T}{\log P(w_t)} 
+$$
+인데 모든 subword pair 들 중 편의상 세 조합("o", "og", "do")만을 골라 loss를 비교해 보면,
+1) "o"라는 subword를 없앤 후 loss 
+
+$$ \mathcal{L} = - \sum_{t}^{T}{\log P(w_t)} = - 10 \cdot \log P(["do", "g"]) - 5 \cdot \log P(["do"]) = 40.713077800917326 $$
+
+2)  "og"라는 subword를 없앤 후 loss
+
+$$ \mathcal{L} = - \sum_{t}^{T}{\log P(w_t)} = - 10 \cdot \log P(["do", "g"]) - 5 \cdot \log P(["do"]) = 40.713077800917326 $$
+</p>
+<p>"o" 또는 "og"를 제외한 조합으로 총 loss를 계산했을 때 두 loss간의 차이는 없다 (애초에 "do"로 분할하기 때문에). 그러나</p>
+<p>3) "do"라는 subword pair를 사전에서 없애면
+
+$$ \mathcal{L} = - 10 \cdot \log P(["d", "og"]) - 5 \cdot \log P(["d", "o"]) = 48.044763144884456 $$
+</p>
+<p>오히려 loss가 증가한다. 따라서 세 후보 중 없앴을 때 loss가 최소로 증가하는 pair인 "o" 나 "og"를 사전에서 제거하게 된다.</p>
 
 </div>
 </div>
@@ -319,6 +293,12 @@ possible candidate: ug &amp; likelihood: 0.0002932128470001566
 <li>huggingface: <a href="https://huggingface.co/course/chapter6/5?fw=pt#bytepair-encoding-tokenization">BPE Tokenization</a>
 </li>
 <li>google-tensorflow: <a href="https://www.tensorflow.org/text/guide/subwords_tokenizer#optional_the_algorithm">Subword Tokenization</a>
+</li>
+<li>huggingface: <a href="https://huggingface.co/course/chapter6/5?fw=pt">Byte-Pair Encoding</a>
+</li>
+<li>huggingface: <a href="https://huggingface.co/course/chapter6/6?fw=pt">WordPiece</a>
+</li>
+<li>huggingface: <a href="https://huggingface.co/course/chapter6/7?fw=pt">Unigram</a>
 </li>
 </ol>
 
